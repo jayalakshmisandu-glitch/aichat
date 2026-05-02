@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using Backend.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -22,6 +23,7 @@ namespace Backend
         public void ConfigureServices(IServiceCollection services)
         {
             var frontendUrl = Configuration["FrontendUrl"];
+            var frontendUrls = Configuration["FrontendUrls"];
 
             services.AddControllers();
             services.AddSingleton<UserStore>();
@@ -33,20 +35,20 @@ namespace Backend
             {
                 options.AddPolicy("Frontend", builder =>
                 {
-                    var origins = string.IsNullOrWhiteSpace(frontendUrl)
-                        ? new[]
+                    var configuredOrigins = new[] { frontendUrl }
+                        .Concat((frontendUrls ?? string.Empty).Split(';'))
+                        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                        .Select(origin => origin.Trim().TrimEnd('/'));
+
+                    var origins = configuredOrigins
+                        .Concat(new[]
                         {
                             "http://localhost:5173",
                             "http://localhost:5174",
                             "http://localhost:5175"
-                        }
-                        : new[]
-                        {
-                            frontendUrl,
-                            "http://localhost:5173",
-                            "http://localhost:5174",
-                            "http://localhost:5175"
-                        };
+                        })
+                        .Distinct()
+                        .ToArray();
 
                     builder
                         .WithOrigins(origins)
@@ -61,8 +63,12 @@ namespace Backend
                 {
                     options.Cookie.Name = "ai_chat_auth";
                     options.Cookie.HttpOnly = true;
-                    options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                    options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.None;
+                    options.Cookie.SameSite = string.IsNullOrWhiteSpace(frontendUrl)
+                        ? Microsoft.AspNetCore.Http.SameSiteMode.Lax
+                        : Microsoft.AspNetCore.Http.SameSiteMode.None;
+                    options.Cookie.SecurePolicy = string.IsNullOrWhiteSpace(frontendUrl)
+                        ? Microsoft.AspNetCore.Http.CookieSecurePolicy.None
+                        : Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
                     options.LoginPath = "/api/auth/login";
                     options.Events.OnRedirectToLogin = context =>
                     {
