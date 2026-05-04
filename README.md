@@ -59,15 +59,14 @@ Recommended simple setup:
 3. Set frontend environment variable:
 
    ```text
-   VITE_API_URL=https://YOUR-BACKEND-URL/api
+   VITE_API_URL=https://aichat-backend-c13m.onrender.com/api
    ```
 
 4. Set backend environment variables:
 
    ```text
-   FrontendUrl=https://YOUR-FRONTEND-URL
-   Gemini__ApiKey=YOUR_GEMINI_API_KEY
-   Gemini__Model=gemini-flash-lite-latest
+   FrontendUrl=https://aichat-six-weld.vercel.app/
+   
    ```
 
 For local development, the app still uses:
